@@ -1,0 +1,10 @@
+Plots the value of x,y coordinates in a video over time.
+
+Example output:
+http://www.flickr.com/photos/stumm/5129868466/
+
+Inspired by:
+Adam Magyar http://www.magyaradam.com/
+
+REQUIREMENTS:
+ - ffmpeg
