@@ -5,7 +5,6 @@ from PIL import Image
 import glob
 import logging
 import sys
-import getopt
 
 
 def main(imageDir, movieFile):
