@@ -8,3 +8,5 @@ Adam Magyar http://www.magyaradam.com/
 
 REQUIREMENTS:
  - ffmpeg
+ - libjpeg (make your this is installed before you get PIL)
+ - python imaging library
