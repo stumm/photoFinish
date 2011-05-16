@@ -5,18 +5,44 @@ from PIL import Image
 import glob
 import logging
 import sys
+import getopt
+
+def printHelp():
+    print "photofinish should be called in the following way:"
+    print "photofinish.py [-r] [-p photoName] imageDir [videoName]"
+    sys.exit(2)
 
 
-def main(imageDir, movieFile=None):
-    panoName = "pano.jpg"
-    imageDir = expanduser(imageDir) # expand ~username
+def main(argv):
+
+    # check if the right number of variables are passed in
+    try:
+        opts, args = getopt.getopt(argv, "rp:", [])
+    except getopt.GetoptError:
+        printHelp()
+    
+    rotate = False # default value
+    panoName = "pano.jpg" # default value
+
+    # check if the user overrode the default values
+    for opt, arg in opts:
+        if opt == "-r":
+            rotate = True
+        if opt == "-p":
+            panoName = arg
+
+    if 1 > len(args) or len(args) > 2 :
+        printHelp()
+
+    imageDir = expanduser(args[0]) # expand ~username in imageDir
+
 
     # movieFile is optional, so you can use any images you'd like
-    if movieFile is not None:
-        movieFile = expanduser(movieFile)
+    if len(args) == 2:
+        movieFile = expanduser(args[1]) # expand ~username in moveFile
         frameBreaker(movieFile, imageDir)
 
-    combineImages(imageDir, panoName, True)
+    combineImages(imageDir, panoName, rotate)
 
 def frameBreaker(movieFileName, imageDir):
     """Break down movie into images
@@ -26,6 +52,11 @@ def frameBreaker(movieFileName, imageDir):
         imageDir: directory which will hold the frames extracted from the 
             movie
     """
+    # check whether video exists
+    if not exists(movieFileName):
+        print "Your movie does seem to exist. Please check your params."
+        sys.exit(2)
+
     createImages = True
 
     # if the dir exists, ask if we should just use the existing images
@@ -56,7 +87,6 @@ def combineImages(imageDir, panoName, rotate=False):
         imageDir: path to the directory which is storing images
         panoName: filename (including extension) of the output image
     """
-
     # number of images will be used to set the size of the image
     imagePaths = glob.glob(imageDir + "*.jpg")
     numImages = len(imagePaths)
@@ -98,10 +128,4 @@ if __name__ == "__main__":
     logger = logging.getLogger("VideoGraph")
     logging.basicConfig(level = logging.INFO)
 
-    # check if the right number of variables are passed in
-    if 3 != len(sys.argv):
-        print "photofinish should be called in the following way:"
-        print "photofinish.py [outputDir] [videoName]"
-        sys.exit(2)
-
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1:])
