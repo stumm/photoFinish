@@ -107,6 +107,9 @@ def combineImages(imageDir, panoName, rotate=False):
 
     offset = 0
     for imagePath in imagePaths:
+        if offset%100 == 0:
+            logger.info("Dealing with image: " + imagePath)
+        logger.debug("Dealing with image: " + imagePath)
         # grab sliver of pixels
         im = Image.open(imagePath)
         slit = im.crop(box)
@@ -121,6 +124,7 @@ def combineImages(imageDir, panoName, rotate=False):
     if rotate:
         panoImg = panoImg.rotate(270)
 
+    logger.info("Saving image")
     panoImg.save(panoName, "JPEG")
 
 if __name__ == "__main__":
