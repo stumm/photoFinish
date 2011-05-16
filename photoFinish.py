@@ -7,12 +7,16 @@ import logging
 import sys
 
 
-def main(imageDir, movieFile):
+def main(imageDir, movieFile=None):
     panoName = "pano.jpg"
     imageDir = expanduser(imageDir) # expand ~username
-    movieFile = expanduser(movieFile)
-    frameBreaker(movieFile, imageDir)
-    combineImages(imageDir, panoName)
+
+    # movieFile is optional, so you can use any images you'd like
+    if movieFile is not None:
+        movieFile = expanduser(movieFile)
+        frameBreaker(movieFile, imageDir)
+
+    combineImages(imageDir, panoName, True)
 
 def frameBreaker(movieFileName, imageDir):
     """Break down movie into images
@@ -22,8 +26,7 @@ def frameBreaker(movieFileName, imageDir):
         imageDir: directory which will hold the frames extracted from the 
             movie
     """
-    # SHOULD THIS BE DONE IN A SHELL SCRIPT?
-    createImages = False
+    createImages = True
 
     # if the dir exists, ask if we should just use the existing images
     if exists(imageDir):
@@ -32,18 +35,18 @@ def frameBreaker(movieFileName, imageDir):
             logger.info("blowing away images")
             for image in glob.iglob(imageDir + "*.jpg"):
                 remove(image)
-            createImages = True
+        else:
+            createImages = False
     else:
         logger.info("creating " + imageDir)
         mkdir(imageDir)
-        createImages = True
 
     if createImages:
         logger.info("creating images from movie!")
-        call(["ffmpeg", "-i", movieFileName, "-r", "1", "-f", "image2", imageDir + "foo-%03d.jpg", "-vframes", "10"])
+        call(["ffmpeg", "-i", movieFileName, "-re", "-f", "image2", imageDir + "foo-%04d.jpg"]) 
 
 
-def combineImages(imageDir, panoName):
+def combineImages(imageDir, panoName, rotate=False):
     """Combines multiple images into one.
 
     Take vertical box of pixels from each frame, and place them sequentially
@@ -54,8 +57,7 @@ def combineImages(imageDir, panoName):
         panoName: filename (including extension) of the output image
     """
 
-    # need to figure out number of images, so we can create the pano image
-    # to the right size
+    # number of images will be used to set the size of the image
     imagePaths = glob.glob(imageDir + "*.jpg")
     numImages = len(imagePaths)
 
@@ -66,18 +68,29 @@ def combineImages(imageDir, panoName):
     # create pano image
     im = Image.open(imagePaths[0])
     x_size, y_size = im.size
-    panoImg = Image.new(im.mode, (numImages, y_size))
+    if rotate:
+        panoImg = Image.new(im.mode, (x_size, numImages))
+        box = (0, 0, x_size, 1)
+    else:
+        panoImg = Image.new(im.mode, (numImages, y_size))
+        box = (0, 0, 1, y_size)
 
-    x_offset = 0
-    box = (0, 0, 1, y_size)
+    offset = 0
     for imagePath in imagePaths:
-        # grab vertical set of pixels
+        # grab sliver of pixels
         im = Image.open(imagePath)
         slit = im.crop(box)
 
-        # paste in pano image, incrementing the x_offset as we go
-        panoImg.paste(slit, (x_offset, 0, x_offset + 1, y_size))
-        x_offset += 1
+        # paste in pano image, incrementing the offset as we go
+        if rotate:
+            panoImg.paste(slit, (0, offset, x_size, offset + 1))
+        else:
+            panoImg.paste(slit, (offset, 0, offset + 1, y_size))
+        offset += 1
+
+    if rotate:
+        panoImg = panoImg.rotate(270)
+
     panoImg.save(panoName, "JPEG")
 
 if __name__ == "__main__":
@@ -88,7 +101,7 @@ if __name__ == "__main__":
     # check if the right number of variables are passed in
     if 3 != len(sys.argv):
         print "photofinish should be called in the following way:"
-        print "photofinish.py [videoName] [outputDir]"
+        print "photofinish.py [outputDir] [videoName]"
         sys.exit(2)
 
-    main(sys.argv[2], sys.argv[1])
+    main(sys.argv[1], sys.argv[2])
